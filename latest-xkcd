@@ -1,0 +1,50 @@
+#!/usr/bin/env zsh
+emulate -LR zsh
+set -u
+
+local system_type=$(uname -s)
+if [[ $system_type != "Darwin" ]]; then
+    # TODO: Need to make this portable. Only supporting macOS is silly.
+    echo "This script is currently only supported on macOS."
+    exit 1
+fi
+
+# TODO: Oops, `hxunent` is actually in the package `html-xml-utils`. I'll redo
+# this with an associative array or something to handle packages with
+# different names than the command we're trying to use.
+local required=("xmlstarlet" "htmlq" "hxunent")
+
+local imgcat="${HOME}/.iterm2/imgcat"
+if (! $imgcat &>/dev/null); then
+    # TODO: This is dumb. Can fall back on this, but should probably look at
+    # some other color `cat` alternatives, like catimg to make this more
+    # portable.
+    echo "This script currently requires the 'imgcat' command to be installed."
+    echo "It is included with iTerm2. Look into \"Shell Integration\"."
+    exit 1
+fi
+
+for app in $required; do
+    if ! command -v $app >/dev/null 2>&1; then
+        echo "This script requires the '$app' command to be installed."
+        echo "You can install it with 'brew install $app'."
+        exit 1
+    fi
+done
+
+local FEED_URL="https://xkcd.com/rss.xml"
+local FEED=$(curl -s $FEED_URL)
+local XPATH_PREFIX="//rss/channel/item[position() = 1]" # grab the most recent entry
+local FIRST_IMG_SELECTOR='img:first-child'
+
+XKCD_TITLE=$(echo $FEED | xmlstarlet sel -t -v "${XPATH_PREFIX}/title")
+XKCD_LINK=$(echo $FEED | xmlstarlet sel -t -v "${XPATH_PREFIX}/link")
+# `description` is actually encoded HTML. hxunent decodes it to HTML. That's
+# why we're using htmlq after that.
+XKCD_DESCRIPTION_HTML=$(echo $FEED | xmlstarlet sel -t -v "${XPATH_PREFIX}/description" | hxunent)
+IMG=$(echo $XKCD_DESCRIPTION_HTML | htmlq --attribute src $FIRST_IMG_SELECTOR)
+ALT=$(echo $XKCD_DESCRIPTION_HTML | htmlq --attribute title $FIRST_IMG_SELECTOR)
+
+printf "XKCD: \"%s\" (%s)\n\n" $XKCD_TITLE $XKCD_LINK
+$imgcat -u "${IMG}"
+print "\n${ALT}\n"

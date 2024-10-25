@@ -32,3 +32,6 @@ straightforward.
 ## Running
 
 Put `latest-xkcd` somewhere in your `PATH` and run it! Easy-peasy.
+
+https://github.com/user-attachments/assets/40a003a4-0f35-430b-8e8d-63a000ca08cc
+

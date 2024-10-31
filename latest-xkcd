@@ -1,8 +1,7 @@
-#!/usr/bin/env zsh
-emulate -LR zsh
+#!/bin/sh
 set -u
 
-local system_type=$(uname -s)
+system_type=`uname -s`
 if [[ $system_type != "Darwin" ]]; then
     # TODO: Need to make this portable. Only supporting macOS is silly.
     echo "This script is currently only supported on macOS."
@@ -12,9 +11,9 @@ fi
 # TODO: Oops, `hxunent` is actually in the package `html-xml-utils`. I'll redo
 # this with an associative array or something to handle packages with
 # different names than the command we're trying to use.
-local required=("xmlstarlet" "htmlq" "hxunent")
+required=("xmlstarlet" "htmlq" "hxunent")
 
-local imgcat="${HOME}/.iterm2/imgcat"
+imgcat="${HOME}/.iterm2/imgcat"
 if (! $imgcat &>/dev/null); then
     # TODO: This is dumb. Can fall back on this, but should probably look at
     # some other color `cat` alternatives, like catimg to make this more
@@ -32,10 +31,10 @@ for app in $required; do
     fi
 done
 
-local FEED_URL="https://xkcd.com/rss.xml"
-local FEED=$(curl -s $FEED_URL)
-local XPATH_PREFIX="//rss/channel/item[position() = 1]" # grab the most recent entry
-local FIRST_IMG_SELECTOR='img:first-child'
+FEED_URL="https://xkcd.com/rss.xml"
+FEED=$(curl -s $FEED_URL)
+XPATH_PREFIX="//rss/channel/item[position() = 1]" # grab the most recent entry
+FIRST_IMG_SELECTOR='img:first-child'
 
 XKCD_TITLE=$(echo $FEED | xmlstarlet sel -t -v "${XPATH_PREFIX}/title")
 XKCD_LINK=$(echo $FEED | xmlstarlet sel -t -v "${XPATH_PREFIX}/link")
@@ -47,4 +46,4 @@ ALT=$(echo $XKCD_DESCRIPTION_HTML | htmlq --attribute title $FIRST_IMG_SELECTOR)
 
 printf "XKCD: \"%s\" (%s)\n\n" $XKCD_TITLE $XKCD_LINK
 $imgcat -u "${IMG}"
-print "\n${ALT}\n"
+echo "\n${ALT}\n" | fmt -${COLUMNS:-80}
